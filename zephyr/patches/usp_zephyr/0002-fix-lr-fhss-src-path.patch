@@ -1,0 +1,13 @@
+diff --git a/modules/usp_drivers/dev_env.cmake b/modules/usp_drivers/dev_env.cmake
+index f92cafe..843ba99 100644
+--- a/modules/usp_drivers/dev_env.cmake
++++ b/modules/usp_drivers/dev_env.cmake
+@@ -1,6 +1,7 @@
+ # SPDX-License-Identifier: BSD-3-Clause-Clear
+
+ if(SX126X_ENABLE_LR_FHSS)
+-  set(LR_FHSS_SRC_PATH "${LBM_SX126X_LIB_DIR}/lr_fhss_driver/src"
++  # This usp tree ships lr_fhss_mac.c next to sx126x.c, not under lr_fhss_driver/.
++  set(LR_FHSS_SRC_PATH "${LBM_SX126X_LIB_DIR}"
+     CACHE PATH "Path to folder containing LR-FHSS driver" FORCE)
+ endif()

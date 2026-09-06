@@ -1,0 +1,36 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Temporary adapter for the pinned RAK4631 BSP and USP SX1262 driver. */
+#include <zephyr/dt-bindings/usp/sx126x.h>
+
+/ {
+	chosen {
+		zephyr,lorawan-transceiver = &lora;
+	};
+};
+
+&lora {
+	compatible = "semtech,sx1262-new";
+	dio1-gpios = <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+	dio2-as-rf-switch;
+	dio3-as-tcxo-control;
+	tcxo-voltage = <SX126X_TCXO_SUPPLY_3_3V>;
+	tcxo-wakeup-time = <5>;
+	reg-mode = <SX126X_REG_MODE_DCDC>;
+	/delete-property/ dio2-tx-enable;
+	/delete-property/ dio3-tcxo-voltage;
+	/delete-property/ tcxo-power-startup-delay-ms;
+	/delete-property/ rx-enable-gpios;
+};
+
+&gpio1 {
+	app_rf_power: app-rf-power {
+		gpio-hog;
+		gpios = <5 GPIO_ACTIVE_HIGH>;
+		output-high;
+	};
+	app_rf_control: app-rf-control {
+		gpio-hog;
+		gpios = <7 GPIO_ACTIVE_HIGH>;
+		input;
+	};
+};

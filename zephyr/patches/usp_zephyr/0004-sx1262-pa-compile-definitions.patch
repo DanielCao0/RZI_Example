@@ -1,0 +1,21 @@
+diff --git a/modules/usp_drivers/sx126x.cmake b/modules/usp_drivers/sx126x.cmake
+index a204492..bcd624c 100644
+--- a/modules/usp_drivers/sx126x.cmake
++++ b/modules/usp_drivers/sx126x.cmake
+@@ -5,9 +5,13 @@
+ zephyr_library_compile_definitions(SX126X)
+ zephyr_library_compile_definitions(SX126X_TRANSCEIVER)
+ zephyr_library_compile_definitions(SX126X_DISABLE_WARNINGS)
+-zephyr_library_compile_definitions_ifdef(CONFIG_DT_HAS_SEMTECH_SX1261_NEW_ENABLED SX1261)
+-zephyr_library_compile_definitions_ifdef(CONFIG_DT_HAS_SEMTECH_SX1262_NEW_ENABLED SX1262)
+-zephyr_library_compile_definitions_ifdef(CONFIG_DT_HAS_SEMTECH_SX1268_NEW_ENABLED SX1268)
++# Chip variant is consumed by sx126x_ral_bsp.c in drivers/usp, which is a
++# different zephyr_library(). Library-local defs never reach that BSP, so
++# ral_sx126x_bsp_get_tx_cfg() falls back to the SX1261 PA (device_sel=1,
++# hp_max=0) even when the DTS compatible is semtech,sx1262-new.
++zephyr_compile_definitions_ifdef(CONFIG_DT_HAS_SEMTECH_SX1261_NEW_ENABLED SX1261)
++zephyr_compile_definitions_ifdef(CONFIG_DT_HAS_SEMTECH_SX1262_NEW_ENABLED SX1262)
++zephyr_compile_definitions_ifdef(CONFIG_DT_HAS_SEMTECH_SX1268_NEW_ENABLED SX1268)
+
+ # Allow modem options
+ set(ALLOW_CSMA_BUILD true)

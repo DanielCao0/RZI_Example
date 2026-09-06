@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# Customer application manifest. RZI is consumed as an independent west project.
+
+manifest:
+  version: "1.2"
+
+  self:
+    path: app
+
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+    - name: lora-net
+      url-base: https://github.com/Lora-net
+    - name: rzi-origin
+      url-base: https://github.com/DanielCao0
+
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: 161f758ba363ec90cd9b727a5d82e6c86efa85ad
+      import: true
+
+    - name: rzi
+      repo-path: RZI
+      remote: rzi-origin
+      revision: main
+
+    - name: usp_zephyr
+      remote: lora-net
+      revision: main
+
+    - name: usp
+      remote: lora-net
+      revision: main
+      path: modules/lib/usp
+      submodules: true

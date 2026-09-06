@@ -1,0 +1,58 @@
+diff --git a/drivers/usp/sx126x/sx126x_board.c b/drivers/usp/sx126x/sx126x_board.c
+index 215801a..73d0b87 100644
+--- a/drivers/usp/sx126x/sx126x_board.c
++++ b/drivers/usp/sx126x/sx126x_board.c
+@@ -361,7 +361,7 @@ static int sx126x_pm_action( const struct device* dev, enum pm_device_action act
+
+ #define SX126X_CONFIG( node_id )                                                                                       \
+     {                                                                                                                  \
+-        .spi = SPI_DT_SPEC_GET( node_id, SX126X_SPI_OPERATION, 0 ), .reset = GPIO_DT_SPEC_GET( node_id, reset_gpios ), \
++        .spi = SPI_DT_SPEC_GET( node_id, SX126X_SPI_OPERATION ), .reset = GPIO_DT_SPEC_GET( node_id, reset_gpios ), \
+         .busy = GPIO_DT_SPEC_GET( node_id, busy_gpios ),                                                               \
+         CONFIGURE_GPIO_IF_IN_DT( node_id, dio1, dio1_gpios ) CONFIGURE_GPIO_IF_IN_DT( node_id, dio2, dio2_gpios )      \
+             CONFIGURE_GPIO_IF_IN_DT( node_id, dio3, dio3_gpios )                                                       \
+diff --git a/modules/smtc_modem_hal/smtc_modem_hal.c b/modules/smtc_modem_hal/smtc_modem_hal.c
+index a08e7b9..ace6332 100644
+--- a/modules/smtc_modem_hal/smtc_modem_hal.c
++++ b/modules/smtc_modem_hal/smtc_modem_hal.c
+@@ -40,7 +40,6 @@
+ #include <zephyr/settings/settings.h>
+ #include <zephyr/sys/__assert.h>
+ #include <zephyr/sys/reboot.h>
+-#include <zephyr/fs/nvs.h>
+ #include <zephyr/storage/flash_map.h>
+ #include <zephyr/drivers/flash.h>
+ #include <zephyr/logging/log.h>
+diff --git a/modules/smtc_modem_hal/smtc_modem_hal_storage.c b/modules/smtc_modem_hal/smtc_modem_hal_storage.c
+index c759774..43bbd77 100644
+--- a/modules/smtc_modem_hal/smtc_modem_hal_storage.c
++++ b/modules/smtc_modem_hal/smtc_modem_hal_storage.c
+@@ -64,7 +64,7 @@ static struct lorawan_user_storage_cb* user_storage_cb;
+ #if DT_HAS_CHOSEN( lora_basics_modem_context_partition )
+ #define CONTEXT_PARTITION DT_FIXED_PARTITION_ID( DT_CHOSEN( lora_basics_modem_context_partition ) )
+ #else
+-#define CONTEXT_PARTITION FIXED_PARTITION_ID( storage_partition )
++#define CONTEXT_PARTITION PARTITION_ID( storage_partition )
+ #endif
+
+ const struct flash_area* context_flash_area;
+diff --git a/subsys/usp/smtc_sw_platform_helper.c b/subsys/usp/smtc_sw_platform_helper.c
+index 9642b24..427a3a0 100644
+--- a/subsys/usp/smtc_sw_platform_helper.c
++++ b/subsys/usp/smtc_sw_platform_helper.c
+@@ -87,6 +87,7 @@ K_MUTEX_DEFINE( rac_api_mutex );
+ #endif
+ #endif
+
++#if HAS_LED_TXRX || HAS_LED_SCAN
+ static const struct gpio_dt_spec pf_led_pin[SMTC_PF_LED_MAX] = {
+ #if HAS_LED_TXRX
+     [SMTC_PF_LED_RX] = GPIO_DT_SPEC_GET( RX_LED_NODE, gpios ),
+@@ -101,6 +102,7 @@ static const struct gpio_dt_spec pf_led_pin[SMTC_PF_LED_MAX] = {
+     [SMTC_PF_LED_SCAN] = { 0 },
+ #endif
+ };
++#endif
+
+ /*
+  * -----------------------------------------------------------------------------
