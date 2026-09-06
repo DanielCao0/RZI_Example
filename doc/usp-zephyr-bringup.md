@@ -5,7 +5,7 @@
 
 | # | 文件 | 干什么 |
 |---|------|--------|
-| 1 | `west.yml` | 把 `usp_zephyr` 和 `usp` 拉进工作区 |
+| 1 | `west.yml` | `import: true` 引入 RZI 清单，连带拉入 `usp_zephyr` 和 `usp` |
 | 2 | `app/prj.conf` | 开 USP Kconfig，关掉 Zephyr 自带 LoRa |
 | 3 | `app/boards/<board>.overlay` | 电台节点改 USP binding + 密钥 |
 | 4 | `app/CMakeLists.txt` | 链接 LBM 编译定义 |
@@ -14,7 +14,7 @@
 
 ---
 
-## 1. west.yml：加两个项目
+## 1. west.yml：import RZI 清单
 
 ```yaml
 manifest:
@@ -23,26 +23,26 @@ manifest:
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
-    - name: lora-net
-      url-base: https://github.com/Lora-net
+    - name: rzi-origin
+      url-base: https://github.com/DanielCao0
   projects:
     - name: zephyr
       remote: zephyrproject-rtos
       revision: 161f758ba363ec90cd9b727a5d82e6c86efa85ad   # 钉 commit
       import: true
-    - name: usp_zephyr
-      remote: lora-net
+    - name: rzi
+      repo-path: RZI
+      remote: rzi-origin
       revision: main
-      path: usp_zephyr
-      # 不要写 import: true！否则会并入它自带清单里锁死的 Zephyr v4.2.0
-    - name: usp
-      remote: lora-net
-      revision: main
-      path: modules/lib/usp      # 必须是这个路径，Zephyr/CMake 按约定找
-      submodules: true           # 不拉会缺无线电驱动源码
+      import: true          # RZI 的 west.yml 连带拉入 usp_zephyr + usp
 ```
 
-三条铁律：
+`usp_zephyr` 和 `usp` 不再直接列在本清单：RZI 仓库根的 `west.yml` 声明了
+这两个项目（含 `modules/lib/usp` 路径约定和 `submodules: true`），经
+`import: true` 进入工作区。本清单里的同名 project 优先于 import 结果，
+要换版本直接在本清单补一条即可。
+
+三条铁律现在由 RZI 的清单替你遵守（排错时仍需理解）：
 
 1. **`usp_zephyr` 不写 `import: true`**。它的 `west.yml` 会把 Zephyr 钉在 v4.2.0，和你自己的 Zephyr 冲突。
 2. **`usp` 必须放 `modules/lib/usp`**，且 `submodules: true`。
