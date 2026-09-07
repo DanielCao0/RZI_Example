@@ -10,7 +10,7 @@
 | 3 | `app/boards/<board>.overlay` | 电台节点改 USP binding + 密钥 |
 | 4 | `app/CMakeLists.txt` | 链接 LBM 编译定义 |
 | 5 | `app/src/main.c` | 初始化顺序 + 事件回调 |
-| 6 | `zephyr/patches.yml` | 给 usp_zephyr 打本地补丁 |
+| 6 | `rzi/zephyr/patches.yml` | RZI 给 usp_zephyr 提供兼容补丁 |
 
 ---
 
@@ -214,8 +214,9 @@ case SMTC_MODEM_EVENT_RESET:
 ## 6. patches.yml：给 usp_zephyr 打补丁
 
 `usp_zephyr` 是 west 拉下来的仓，本地改动一 `west update` 就没。
-用 Zephyr 官方 `west patch`：清单仓里放 `zephyr/patches.yml` + `zephyr/patches/*.patch`，
-`west patch apply` 在每次 build 前自动打（本仓库由 `scripts/container.sh` 包办）。
+RZI 使用 Zephyr 官方 `west patch`，补丁定义放在
+`rzi/zephyr/patches.yml` + `rzi/zephyr/patches/*.patch`。本仓库的
+`scripts/container.sh` 在每次 build 前通过 `west patch -sm rzi` 自动应用。
 
 当前补丁（详见 [west-patch.md](./west-patch.md)）：
 

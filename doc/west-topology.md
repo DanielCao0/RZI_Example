@@ -60,7 +60,7 @@ west-workspace/
     prj.conf
     src/main.c
     west.yml                    # 主清单
-    zephyr/patches.yml          # 可选：west patch 也放这里
+    zephyr/patches.yml          # 可选：清单仓自有的 west patch
   zephyr/                       # 被拉下来的项目
   modules/lib/...
 ```
@@ -83,7 +83,8 @@ manifest:
     path: application
 ```
 
-`west patch` 就是给这种拓扑用的：补丁和 `west.yml` 一起待在应用仓，不 fork `zephyr` / `usp_zephyr`。
+`west patch` 可以把产品补丁放在应用清单仓，也可以通过 `-sm` 从一个共享模块
+读取补丁定义。本工作区使用后者：RZI backend 补丁由 `rzi/` 维护。
 
 **用 T2 的情况**
 
@@ -104,7 +105,9 @@ rzi/                            # 工作区根（.west/）
   app/                          # 老板 = 官方图里的 application/
     west.yml
     src/main.c
-    zephyr/patches.yml
+    scripts/container.sh        # 自动调用 west patch -sm rzi
+  rzi/
+    zephyr/patches.yml          # RZI backend 补丁定义
   zephyr/
   usp_zephyr/
   modules/lib/usp/

@@ -184,7 +184,11 @@ GitHub 不稳时多试几次即可；脚本对完整 `west update` 有最多 5 �
 Malformed board YAML file: .../usp_zephyr/boards/seeed/xiao_nrf54l15/board.yml
 ```
 
-不要直接改 `usp_zephyr/`。兼容问题做成官方 `west patch`，登记在 `zephyr/patches.yml`，用法见 [doc/west-patch.md](./doc/west-patch.md)。`./scripts/container.sh build` 会先 `west patch clean` 再 `apply`。`west update` 会把模块重置到清单 revision，补丁要再打一次。
+不要直接改 `usp_zephyr/`。RZI backend 的兼容问题由 RZI 通过官方
+`west patch` 维护，登记在 `rzi/zephyr/patches.yml`，用法见
+[west-patch.md](./west-patch.md)。`./scripts/container.sh build` 会先执行
+`west patch -sm rzi clean`，再执行 `apply --roll-back`。`west update`
+会把模块重置到清单 revision，补丁需要重新应用。
 
 ---
 

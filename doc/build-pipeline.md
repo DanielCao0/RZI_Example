@@ -31,7 +31,7 @@ flowchart TB
     overlay["app/boards/rak4631_nrf52840.overlay"]
     cmakeApp["app/CMakeLists.txt"]
     src["app/src/main.c board.c"]
-    patches["zephyr/patches.yml"]
+    patches["rzi/zephyr/patches.yml"]
   end
 
   subgraph trees ["west update 拉下来的树"]
@@ -80,7 +80,8 @@ rzi/                          west 工作区根
 │   ├── src/main.c            入网、上报、LED
 │   ├── src/board.c           全擦后 UICR REGOUT0 → 3.3 V
 │   ├── boards/*.overlay      电台 binding、密钥、USB console
-│   └── zephyr/patches.yml    west patch 元数据
+│   └── scripts/container.sh  自动应用 RZI 补丁并构建
+├── rzi/                      RZI 模块及其 west patch 元数据
 ├── zephyr/                   RTOS + 构建系统（钉 SHA，4.4.99）
 ├── usp_zephyr/               Semtech 的 Zephyr 胶水模块
 ├── modules/lib/usp/          LBM + RAC + sx126x 驱动源码
@@ -247,17 +248,20 @@ Ninja 用 SDK 的 `arm-zephyr-eabi-gcc`，目标 Cortex-M4（nRF52840）。
 
 ## 5. 补丁插在哪
 
-`usp_zephyr` 是 west 拉下来的，不能在里面直接 commit。本地修正登记在清单仓：
+`usp_zephyr` 是 west 拉下来的，不能在里面直接 commit。RZI backend 所需修正
+由 RZI 模块统一维护：
 
 ```text
-zephyr/patches.yml
-zephyr/patches/usp_zephyr/0001-...
-                              0002-...
-                              0003-...
-                              0004-sx1262-pa-compile-definitions.patch
+rzi/zephyr/patches.yml
+rzi/zephyr/patches/usp_zephyr/0001-...
+                                  0002-...
+                                  0003-...
+                                  0004-sx1262-pa-compile-definitions.patch
 ```
 
-`./scripts/container.sh build` 会先 `west patch clean` 再 `apply`，再配置 CMake。约定见 [west patch](./west-patch.md)。
+`./scripts/container.sh build` 会先执行 `west patch -sm rzi clean` 和
+`west patch -sm rzi apply --roll-back`，再配置 CMake。约定见
+[west patch](./west-patch.md)。
 
 ---
 
@@ -270,6 +274,6 @@ zephyr/patches/usp_zephyr/0001-...
 | 密钥、区域、SX1262 属性 | `app/boards/rak4631_nrf52840.overlay` | `usp_zephyr/boards/` |
 | 开 USB / USP / 关树上 LoRa | `app/prj.conf` | — |
 | 依赖版本 | `west.yml` | 容器里 `west init` |
-| 上游 CMake/驱动缺陷 | `zephyr/patches/` | 直接改 `usp_zephyr/` |
+| RZI backend 的上游缺陷 | `rzi/zephyr/patches/` | 直接改 `usp_zephyr/` |
 
 接入步骤清单见 [usp_zephyr bringup](./usp-zephyr-bringup.md)。

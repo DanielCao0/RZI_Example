@@ -19,8 +19,8 @@ Usage: $0 <command> [args...]
                 for nRF52840 DK plus an SX126x shield
   run           Run west build -t run
   clangd        Rewrite compile_commands paths for host clangd
-  patch         Run west patch clean and apply (see doc/west-patch.md)
-  patch-list    west patch list
+  patch         Apply the patches owned by RZI (see doc/west-patch.md)
+  patch-list    List the patches owned by RZI
   Flash: ./scripts/flash-rak4631.sh
 
 Examples:
@@ -95,17 +95,17 @@ ensure_workspace() {
   west_patch_apply
 }
 
-# Apply the west patch manifest from app/zephyr/patches.yml.
+# Apply the west patch manifest owned by the RZI module.
 west_patch_apply() {
-  if [[ ! -f "${REPO}/zephyr/patches.yml" || ! -d "${WS}/.west" ]]; then
+  if [[ ! -f "${WS}/rzi/zephyr/patches.yml" || ! -d "${WS}/.west" ]]; then
     return 0
   fi
-  run_docker west patch clean
-  run_docker west patch apply
+  run_docker west patch -sm rzi clean
+  run_docker west patch -sm rzi apply --roll-back
 }
 
 west_patch_list() {
-  run_docker west patch list
+  run_docker west patch -sm rzi list
 }
 
 # Translate container paths and compiler names for clangd running on the host.
