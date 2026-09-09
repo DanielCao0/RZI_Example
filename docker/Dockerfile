@@ -44,6 +44,8 @@ RUN SDK_FILE="zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64_minimal.tar.xz" \
 RUN wget -q -O /tmp/requirements-base.txt \
       https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/main/scripts/requirements-base.txt \
     && /opt/zephyr-venv/bin/pip install --no-cache-dir -r /tmp/requirements-base.txt \
+    && /opt/zephyr-venv/bin/pip install --no-cache-dir \
+         cryptography intelhex click cbor2 \
     && rm -f /tmp/requirements-base.txt
 
 # Match the container user to the host so it can write to the mounted workspace.

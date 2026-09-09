@@ -23,8 +23,7 @@ CMake does not add RZI source directories or private include paths.
 
 ## Build and flash
 
-Replace the zero-valued OTAA credentials in a local copy of
-`boards/rak4631_nrf52840.overlay`, then run:
+Edit OTAA credentials in `boards/rzi_rak4631_nrf52840.overlay`, then run:
 
 ```sh
 mkdir rzi-workspace
@@ -42,6 +41,5 @@ The build output is written to the workspace-level `build/app` directory.
 ## Ownership boundary
 
 The application owns product behavior, credentials, region selection, LEDs, and
-the uplink schedule. It also carries temporary BSP and USP compatibility until
-the pinned dependencies provide it directly. RZI owns USP initialization,
-modem serialization, events, and the public C API.
+the uplink schedule. Target the RZI product board `rzi_rak4631/nrf52840` with
+sysbuild; flash `merged.hex`. See `rzi/doc/boot.md`.

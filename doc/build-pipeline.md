@@ -6,7 +6,7 @@
 ./scripts/container.sh build
 ```
 
-内部是：打 `west patch` → 容器里 `west build -b rak4631/nrf52840` → 产出 `build/app/zephyr/zephyr.hex`。
+内部是：打 `west patch` → 容器里 `west build --sysbuild -b rzi_rak4631/nrf52840` → 产出 `build/app/merged.hex`。
 
 运行时谁调用谁见 [三者关系](./usp-lbm-zephyr.md)、[usp_zephyr 框架](./usp_zephyr-framework.md)。本文只讲 **构建**：哪些文件进编译器、用的什么框架。
 
@@ -28,7 +28,7 @@ flowchart TB
   subgraph inputs ["你改的输入"]
     yml["west.yml"]
     prj["app/prj.conf"]
-    overlay["app/boards/rak4631_nrf52840.overlay"]
+    overlay["app/boards/rzi_rak4631_nrf52840.overlay"]
     cmakeApp["app/CMakeLists.txt"]
     src["app/src/main.c board.c"]
     patches["rzi/zephyr/patches.yml"]
@@ -153,7 +153,7 @@ flowchart TB
 ```text
 zephyr/dts/arm/...nrf52840...
   → zephyr/boards/rakwireless/rak4631/rak4631_nrf52840.dts     板上 SPI、SX1262 脚、led0
-    → app/boards/rak4631_nrf52840.overlay                      改成 semtech,sx1262-new；密钥；USB console
+    → app/boards/rzi_rak4631_nrf52840.overlay                     密钥与 USB console；射频在 rzi_rak4631 板上
 ```
 
 USP 的 binding 在 `usp_zephyr/dts/bindings/usp/semtech,sx1262-new.yaml`（`usp_zephyr` 的 `module.yml` 声明了 `dts_root`）。

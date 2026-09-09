@@ -1,22 +1,34 @@
 #!/usr/bin/env bash
-# Flash build/app/zephyr/zephyr.hex to a RAK4631 over J-Link SWD.
+# Flash the RZI RAK4631 merged image (MCUboot + app) over J-Link SWD.
 # Run this script on the host with the debugger connected to the carrier-board SWD header.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 WORKSPACE="$(dirname "${REPO}")"
-HEX="${WORKSPACE}/build/app/zephyr/zephyr.hex"
+HEX="${WORKSPACE}/build/app/merged.hex"
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  echo "Usage: $0 [--build]"
+  echo "Usage: $0 [--build] [hex]"
   echo "  --build  Run ./scripts/container.sh build before flashing"
+  echo "  hex      Optional path to a .hex (default: build/app/merged.hex)"
   exit 0
 fi
 
 if [[ "${1:-}" == "--build" ]]; then
   "${REPO}/scripts/container.sh" build
+  shift
 fi
 
+if [[ -n "${1:-}" ]]; then
+  HEX="$1"
+fi
+
+if [[ ! -f "${HEX}" ]]; then
+  alt="$(compgen -G "$(dirname "${HEX}")/merged_*.hex" || true)"
+  if [[ -n "${alt}" ]]; then
+    HEX="$(printf '%s\n' ${alt} | head -n 1)"
+  fi
+fi
 [[ -f "${HEX}" ]] || {
   echo "error: missing ${HEX}; run ./scripts/container.sh build first" >&2
   exit 1

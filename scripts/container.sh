@@ -5,6 +5,9 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 IMAGE="${IMAGE:-rzi-zephyr:latest}"
 WS="$(dirname "${REPO}")"
+if ! command -v docker >/dev/null 2>&1 && command -v docker.exe >/dev/null 2>&1; then
+  docker() { command docker.exe "$@"; }
+fi
 
 usage() {
   cat <<EOF
@@ -14,7 +17,7 @@ Usage: $0 <command> [args...]
   init          Run west init -l app and west update (skip if initialized)
   shell         Open a shell in the container
   build         Run west build (initialize the workspace if needed)
-                With no arguments, build the customer application for RAK4631
+                With no arguments, sysbuild the customer app for rzi_rak4631
   sample        Build the upstream usp_zephyr periodical_uplink sample
                 for nRF52840 DK plus an SX126x shield
   run           Run west build -t run
@@ -27,7 +30,7 @@ Examples:
   $0 build-image
   $0 build
   $0 sample
-  $0 build -p always -b rak4631/nrf52840 /workdir/app
+  $0 build -p always --sysbuild -b rzi_rak4631/nrf52840 /workdir/app
   $0 shell
 EOF
 }
@@ -42,16 +45,40 @@ wipe_host_build_dir() {
   fi
 }
 
+# Docker Desktop on WSL needs Windows paths and a bind at /rzi: the
+# workspace symlink rzi -> ../rzi becomes /workdir/rzi -> /rzi inside
+# the container, and a bind on the symlink is not overlaid.
+host_vol_path() {
+  local p="$1"
+  if command -v wslpath >/dev/null 2>&1 && grep -qi microsoft /proc/version 2>/dev/null; then
+    wslpath -w "$p"
+  else
+    printf '%s\n' "$p"
+  fi
+}
+
+publish_merged_hex() {
+  local dir="$1"
+  local found
+  found="$(compgen -G "${dir}/merged_*.hex" || true)"
+  if [[ -n "${found}" ]]; then
+    cp ${found} "${dir}/merged.hex"
+  fi
+}
+
 run_docker() {
   local workdir="${DOCKER_WORKDIR:-/workdir}"
   local it=()
   local module_mounts=()
+  local ws_vol rzi_real
   if [[ -t 0 ]]; then it=(-it); fi
-  # Local development keeps RZI as an independent repository and may expose
-  # it in the workspace through a symlink. Bind the resolved repository into
-  # the container so the west project remains visible at /workdir/rzi.
+  ws_vol="$(host_vol_path "${WS}")"
   if [[ -L "${WS}/rzi" ]]; then
-    module_mounts=(-v "$(readlink -f "${WS}/rzi"):/workdir/rzi")
+    rzi_real="$(readlink -f "${WS}/rzi")"
+    module_mounts=(
+      -v "$(host_vol_path "${rzi_real}"):/workdir/rzi"
+      -v "$(host_vol_path "${rzi_real}"):/rzi"
+    )
   fi
   docker run --rm "${it[@]}" --network host \
     --user "$(id -u):$(id -g)" \
@@ -60,7 +87,7 @@ run_docker() {
     -e GIT_CONFIG_COUNT=1 \
     -e GIT_CONFIG_KEY_0=http.version \
     -e GIT_CONFIG_VALUE_0=HTTP/1.1 \
-    -v "${WS}:/workdir" \
+    -v "${ws_vol}:/workdir" \
     "${module_mounts[@]}" \
     -w "${workdir}" \
     "${IMAGE}" \
@@ -166,12 +193,12 @@ case "${cmd}" in
     west_patch_apply
     if [[ $# -eq 0 ]]; then
       wipe_host_build_dir "${WS}/build/app"
-      set -- west build -p always -b rak4631/nrf52840 \
-        -d /workdir/build/app /workdir/app
+      run_docker bash -lc 'python3 -c "import cryptography" 2>/dev/null || pip install --no-cache-dir cryptography cbor2
+        west build -p always --sysbuild -b rzi_rak4631/nrf52840 -d /workdir/build/app /workdir/app'
+      publish_merged_hex "${WS}/build/app"
     else
-      set -- west build "$@"
+      run_docker west build "$@"
     fi
-    run_docker "$@"
     sync_compile_commands "${WS}/build/app/compile_commands.json"
     ;;
   sample)
