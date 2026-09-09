@@ -7,6 +7,8 @@
 / {
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
+		/* RZI1 slot update. Switch to &uart1 for hardware serial. */
+		rzi,slot-update-uart = &cdc_acm_uart0;
 	};
 
 	zephyr,user {
