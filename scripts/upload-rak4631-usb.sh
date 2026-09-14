@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# RZI1 slot1 update for native RZI on RAK4631 (USB CDC or hardware UART).
+# RSUP slot1 update for native RZI on RAK4631 (USB CDC or hardware UART).
 # First-time MCUboot+app still needs J-Link (scripts/flash-rak4631.sh).
 set -euo pipefail
 
@@ -22,7 +22,7 @@ fi
 # Prefer the ArduinoCore copy if present (same protocol); else the RZI copy.
 SCRIPT="${HOME}/ArduinoCore-zephyr-ws/ArduinoCore-zephyr/extra/upload-rzi-usb.py"
 if [[ ! -f "$SCRIPT" ]]; then
-	SCRIPT="${WS}/rzi/scripts/upload-rzi1.py"
+	SCRIPT="${WS}/rzi/scripts/upload-rsup.py"
 fi
 
 exec python3 "$SCRIPT" --port "$PORT" --type slot1 --wait-reboot 45 "$FILE"

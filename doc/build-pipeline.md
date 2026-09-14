@@ -8,7 +8,7 @@
 
 内部是：打 `west patch` → 容器里 `west build --sysbuild -b rzi_rak4631/nrf52840` → 产出 `build/app/merged.hex`。
 
-运行时谁调用谁见 [三者关系](./usp-lbm-zephyr.md)、[usp_zephyr 框架](./usp_zephyr-framework.md)。本文只讲 **构建**：哪些文件进编译器、用的什么框架。
+运行时分层见 `rzi/doc/architecture-zh.md`，backend 切换见 `rzi/doc/lorawan-backends.md`。本文只讲 **构建**：哪些文件进编译器、用的什么框架。
 
 打开本文件请用 Markdown 预览（`Ctrl+Shift+V`），才能看到图。
 
@@ -63,7 +63,7 @@ flowchart TB
   ninja --> out
 ```
 
-容器把整仓挂到 `/workdir`，`ZEPHYR_BASE=/workdir/zephyr`。本机路径 `/home/daniel/rzi` 和容器路径不要写进同一份 `CMakeCache`（见 [Docker 环境](./zephyr-docker-environment-explained.md)）。
+容器把整仓挂到 `/workdir`，`ZEPHYR_BASE=/workdir/zephyr`。本机路径和容器路径不要写进同一份 `CMakeCache`。
 
 ---
 
@@ -276,4 +276,4 @@ rzi/zephyr/patches/usp_zephyr/0001-...
 | 依赖版本 | `west.yml` | 容器里 `west init` |
 | RZI backend 的上游缺陷 | `rzi/zephyr/patches/` | 直接改 `usp_zephyr/` |
 
-接入步骤清单见 [usp_zephyr bringup](./usp-zephyr-bringup.md)。
+USP backend 的 Kconfig / overlay 见 `rzi/doc/lorawan-backends.md`。

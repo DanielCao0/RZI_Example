@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* RZI C API example: OTAA and a confirmed four-byte counter every 5 s. */
 #include <errno.h>
-#include <rzi/lorawan.h>
-#include <rzi/slot_update.h>
+#include <rzi/lorawan/lorawan.h>
+#include <rzi/power/power.h>
+#include <rzi/rsup/rsup.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
@@ -158,12 +159,18 @@ int main(void)
 		return rc;
 	}
 	joining_leds();
-#if defined(CONFIG_RZI_SLOT_UPDATE)
-	if (rzi_slot_update_requested()) {
-		(void)rzi_slot_update_run(rzi_slot_update_uart());
+	rc = rzi_power_init();
+	if (rc) {
+		return rc;
+	}
+#if defined(CONFIG_RZI_RSUP)
+	if (rzi_rsup_requested()) {
+		(void)rzi_rsup_run(rzi_rsup_uart());
 	}
 #endif
+	(void)rzi_power_block(RZI_POWER_BLOCK_TRANSPORT);
 	wait_usb_console();
+	(void)rzi_power_unblock(RZI_POWER_BLOCK_TRANSPORT);
 	LOG_INF("RZI C API example on %s", CONFIG_BOARD_TARGET);
 	rc = rzi_lorawan_register_callbacks(&callbacks, &callback_handle);
 	if (!rc) {

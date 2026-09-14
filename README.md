@@ -2,7 +2,7 @@
 
 This repository is a customer-side Zephyr application and the integration
 example for RZI. It consumes RZI as an independent west project and uses only
-the public `<rzi/lorawan.h>` API.
+the public `<rzi/lorawan/lorawan.h>` API.
 
 ## Workspace topology
 
@@ -42,4 +42,5 @@ The build output is written to the workspace-level `build/app` directory.
 
 The application owns product behavior, credentials, region selection, LEDs, and
 the uplink schedule. Target the RZI product board `rzi_rak4631/nrf52840` with
-sysbuild; flash `merged.hex`. See `rzi/doc/boot.md`.
+sysbuild; flash `merged.hex`. See `rzi/doc/boot.md`. Workspace topology and
+the local build pipeline are in [`doc/README.md`](doc/README.md).

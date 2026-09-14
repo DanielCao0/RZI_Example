@@ -297,5 +297,5 @@ path = app          # → T2（本仓库）
 
 ## 和本仓库其它文档的关系
 
-- 初始化、为什么 `west init -l app`：[zephyr-docker-environment-explained.md](./zephyr-docker-environment-explained.md)
+- 从命令到 `merged.hex`：[build-pipeline.md](./build-pipeline.md)
 - 给 T2 里拉下来的模块打补丁：[west-patch.md](./west-patch.md)
