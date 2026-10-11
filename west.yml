@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Customer application manifest. RZI is consumed as an independent west project;
-# the default USP backend dependencies are imported from the RZI manifest.
+# Zephyr and the default USP backend dependencies are imported from the RZI
+# manifest, so the Zephyr revision follows the one RZI is validated against.
 
 manifest:
   version: "1.2"
@@ -9,17 +10,10 @@ manifest:
     path: app
 
   remotes:
-    - name: zephyrproject-rtos
-      url-base: https://github.com/zephyrproject-rtos
     - name: rzi-origin
       url-base: https://github.com/DanielCao0
 
   projects:
-    - name: zephyr
-      remote: zephyrproject-rtos
-      revision: fa4f8fb0e470210aee0ae6fb069a281bc6ac887a # v4.5.0-rc1
-      import: true
-
     - name: rzi
       repo-path: RZI
       remote: rzi-origin

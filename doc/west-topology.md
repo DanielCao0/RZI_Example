@@ -115,7 +115,7 @@ rzi/                            # 工作区根（.west/）
 
 `west init -l app` 的 `-l` 是 local：别去 GitHub 再 clone 一份清单仓，本地 `app/` 就是老板。`self.path: app` 和 `.west/config` 里的 `path = app` 对上。
 
-不要给 `usp_zephyr` 写 `import: true`，否则会并入它自带清单里锁死的 Zephyr v4.2.0，把你钉的 4.5.0-rc1 冲掉。
+不要给 `usp_zephyr` 写 `import: true`，否则会并入它自带清单里锁死的 Zephyr v4.2.0，把 RZI 钉的 4.5.0-rc1 冲掉。
 
 ## T3：单独的清单仓（森林）
 

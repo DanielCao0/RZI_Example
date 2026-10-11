@@ -82,7 +82,7 @@ rzi/                          west 工作区根
 │   ├── boards/*.overlay      电台 binding、密钥、USB console
 │   └── scripts/container.sh  自动应用 RZI 补丁并构建
 ├── rzi/                      RZI 模块及其 west patch 元数据
-├── zephyr/                   RTOS + 构建系统（钉 SHA，4.5.0-rc1）
+├── zephyr/                   RTOS + 构建系统（版本由 rzi/west.yml 决定）
 ├── modules/usp_zephyr/       Semtech 的 Zephyr 胶水模块
 ├── modules/lib/usp/          LBM + RAC + sx126x 驱动源码
 ├── modules/hal/nordic/       nRF52840 HAL（zephyr/west.yml import 进来）
