@@ -109,13 +109,13 @@ rzi/                            # 工作区根（.west/）
   rzi/
     zephyr/patches.yml          # RZI backend 补丁定义
   zephyr/
-  usp_zephyr/
+  modules/usp_zephyr/
   modules/lib/usp/
 ```
 
 `west init -l app` 的 `-l` 是 local：别去 GitHub 再 clone 一份清单仓，本地 `app/` 就是老板。`self.path: app` 和 `.west/config` 里的 `path = app` 对上。
 
-不要给 `usp_zephyr` 写 `import: true`，否则会并入它自带清单里锁死的 Zephyr v4.2.0，把你钉的 4.4 冲掉。
+不要给 `usp_zephyr` 写 `import: true`，否则会并入它自带清单里锁死的 Zephyr v4.2.0，把你钉的 4.5.0-rc1 冲掉。
 
 ## T3：单独的清单仓（森林）
 
@@ -145,7 +145,7 @@ west-workspace/
 | 小李 | 网关 | 另一份 `src/main.c` |
 | 小张 | 产测夹具 | 又一份 `src/main.c` |
 
-如果继续用 **T2**，就是三份独立工程，每份都有自己的 `west.yml`，每份都写「Zephyr 用 4.4.99」。你升级了 Zephyr，小李忘了改，现场两套行为。三份清单会漂。
+如果继续用 **T2**，就是三份独立工程，每份都有自己的 `west.yml`，每份都写「Zephyr 用 4.5.0-rc1」。你升级了 Zephyr，小李忘了改，现场两套行为。三份清单会漂。
 
 改成 **T3**，公司再开第四个仓，名字随便叫 `fw-manifest`，**整个仓就一个 `west.yml`，没有 `main.c`**：
 
@@ -154,7 +154,7 @@ west-workspace/
 manifest:
   projects:
     - name: zephyr
-      revision: 161f758ba363ec90cd9b727a5d82e6c86efa85ad   # 全公司共用
+      revision: fa4f8fb0e470210aee0ae6fb069a281bc6ac887a   # 全公司共用，Zephyr v4.5.0-rc1
       import: true
     - name: usp_zephyr
       revision: main

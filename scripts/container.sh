@@ -209,7 +209,7 @@ case "${cmd}" in
       -b nrf52840dk/nrf52840 \
       --shield semtech_sx1261mb2bas \
       -d /workdir/build/usp-periodical-uplink \
-      usp_zephyr/samples/usp/lbm/periodical_uplink
+      modules/usp_zephyr/samples/usp/lbm/periodical_uplink
     sync_compile_commands "${WS}/build/usp-periodical-uplink/compile_commands.json"
     ;;
   clangd)

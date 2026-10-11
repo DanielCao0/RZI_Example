@@ -12,8 +12,8 @@ rzi-workspace/
 ├── app/                 this manifest repository
 ├── rzi/                 independent RZI SDK repository
 ├── zephyr/
-├── usp_zephyr/
 ├── modules/
+│   └── usp_zephyr/
 ├── bootloader/
 └── tools/
 ```

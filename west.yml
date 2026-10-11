@@ -17,7 +17,7 @@ manifest:
   projects:
     - name: zephyr
       remote: zephyrproject-rtos
-      revision: 161f758ba363ec90cd9b727a5d82e6c86efa85ad
+      revision: fa4f8fb0e470210aee0ae6fb069a281bc6ac887a # v4.5.0-rc1
       import: true
 
     - name: rzi

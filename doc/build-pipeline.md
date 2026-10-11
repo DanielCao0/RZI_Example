@@ -36,7 +36,7 @@ flowchart TB
 
   subgraph trees ["west update 拉下来的树"]
     z["zephyr/"]
-    uz["usp_zephyr/"]
+    uz["modules/usp_zephyr/"]
     usp["modules/lib/usp/"]
     hal["modules/hal/nordic 等"]
   end
@@ -82,8 +82,8 @@ rzi/                          west 工作区根
 │   ├── boards/*.overlay      电台 binding、密钥、USB console
 │   └── scripts/container.sh  自动应用 RZI 补丁并构建
 ├── rzi/                      RZI 模块及其 west patch 元数据
-├── zephyr/                   RTOS + 构建系统（钉 SHA，4.4.99）
-├── usp_zephyr/               Semtech 的 Zephyr 胶水模块
+├── zephyr/                   RTOS + 构建系统（钉 SHA，4.5.0-rc1）
+├── modules/usp_zephyr/       Semtech 的 Zephyr 胶水模块
 ├── modules/lib/usp/          LBM + RAC + sx126x 驱动源码
 ├── modules/hal/nordic/       nRF52840 HAL（zephyr/west.yml import 进来）
 ├── docker/Dockerfile
@@ -94,7 +94,7 @@ rzi/                          west 工作区根
 |------|-------------|----------------|
 | `app/` | 你的固件应用 | 业务 C、overlay、prj.conf |
 | `zephyr/` | Zephyr RTOS | 内核、GPIO/SPI/USB、CMake 模块、板级 `rak4631` |
-| `usp_zephyr/` | Zephyr extra module | Kconfig、SX1262 驱动 BSP、HAL 胶水、线程 |
+| `modules/usp_zephyr/` | Zephyr extra module | Kconfig、SX1262 驱动 BSP、HAL 胶水、线程 |
 | `modules/lib/usp/` | 平台无关 C 库 | LoRaWAN（LBM）、电台排队（RAC）、芯片驱动 `sx126x.c` |
 | `modules/hal/nordic/` | Nordic nrfx | nRF52840 寄存器级支持 |
 | Docker 镜像 | 工具链 | west、CMake、Ninja、SDK 编译器 |
@@ -133,8 +133,8 @@ flowchart TB
 | 应用 | `app/src/` | 直接写 |
 | LBM | `modules/lib/usp/protocols/lbm_lib/` | `CONFIG_USP_LORA_BASICS_MODEM=y` |
 | RAC / RAL | `modules/lib/usp/smtc_rac_lib/` | `CONFIG_USP=y`（会 `select` RAL） |
-| Radio HAL + BSP | `usp_zephyr/drivers/usp/sx126x/` | `CONFIG_LORA_BASICS_MODEM_DRIVERS=y` + DTS `semtech,sx1262-new` |
-| MCU HAL | `usp_zephyr/modules/smtc_modem_hal/` | 随 USP 编进来 |
+| Radio HAL + BSP | `modules/usp_zephyr/drivers/usp/sx126x/` | `CONFIG_LORA_BASICS_MODEM_DRIVERS=y` + DTS `semtech,sx1262-new` |
+| MCU HAL | `modules/usp_zephyr/modules/smtc_modem_hal/` | 随 USP 编进来 |
 | Zephyr 驱动 | `zephyr/drivers/` | `CONFIG_SPI` / `GPIO` / `USB`… |
 | 板级 | `zephyr/boards/rakwireless/rak4631/` + overlay | `-b rak4631/nrf52840` |
 
@@ -156,7 +156,7 @@ zephyr/dts/arm/...nrf52840...
     → app/boards/rzi_rak4631_nrf52840.overlay                     密钥与 USB console；射频在 rzi_rak4631 板上
 ```
 
-USP 的 binding 在 `usp_zephyr/dts/bindings/usp/semtech,sx1262-new.yaml`（`usp_zephyr` 的 `module.yml` 声明了 `dts_root`）。
+USP 的 binding 在 `modules/usp_zephyr/dts/bindings/usp/semtech,sx1262-new.yaml`（`usp_zephyr` 的 `module.yml` 声明了 `dts_root`）。
 
 合并结果：`build/app/zephyr/zephyr.dts`。
 有这颗节点就会生成：
@@ -171,7 +171,7 @@ CONFIG_DT_HAS_SEMTECH_SX1262_NEW_ENABLED=y
 
 ```text
 zephyr/Kconfig
-  + usp_zephyr/Kconfig          → drivers/Kconfig、subsys/Kconfig
+  + modules/usp_zephyr/Kconfig  → drivers/Kconfig、subsys/Kconfig
   + app/prj.conf                你打开的 CONFIG_*
 ```
 
@@ -202,17 +202,17 @@ Zephyr 再按 `zephyr/module.yml` 拉模块：
 
 | 模块 | 登记文件 | CMake 入口 |
 |------|----------|------------|
-| `usp_zephyr` | `usp_zephyr/zephyr/module.yml` | `usp_zephyr/CMakeLists.txt` → `drivers/` + `subsys/` |
-| `usp` | `modules/lib/usp/zephyr/module.yml`（`cmake-ext: true`） | 实际 CMake 在 `usp_zephyr/modules/usp/` |
+| `usp_zephyr` | `modules/usp_zephyr/zephyr/module.yml` | `modules/usp_zephyr/CMakeLists.txt` → `drivers/` + `subsys/` |
+| `usp` | `modules/lib/usp/zephyr/module.yml`（`cmake-ext: true`） | 实际 CMake 在 `modules/usp_zephyr/modules/usp/` |
 
 于是编出几份 **独立的 `zephyr_library()`**（不是一个大文件夹乱编）：
 
 ```mermaid
 flowchart LR
   appLib["库 app<br/>main.c board.c"]
-  drvLib["库 usp_zephyr/drivers/usp<br/>sx126x_hal.c<br/>sx126x_board.c<br/>sx126x_ral_bsp.c"]
+  drvLib["库 modules/usp_zephyr/drivers/usp<br/>sx126x_hal.c<br/>sx126x_board.c<br/>sx126x_ral_bsp.c"]
   uspLib["库 usp 模块<br/>LBM + RAC + ral_sx126x.c<br/>sx126x.c"]
-  subLib["库 usp_zephyr/subsys/usp<br/>USP 线程、platform helper"]
+  subLib["库 modules/usp_zephyr/subsys/usp<br/>USP 线程、platform helper"]
   zLib["库 zephyr<br/>内核 SPI GPIO USB"]
 
   appLib --> zLib
@@ -221,7 +221,7 @@ flowchart LR
   subLib --> zLib
 ```
 
-`sx126x.cmake` 里芯片型号宏必须是**全局** `zephyr_compile_definitions_ifdef`，否则只进「usp 模块」那份库，**到不了** `sx126x_ral_bsp.c`。这就是补丁 `0004-sx1262-pa-compile-definitions`。
+USP v1.2.1 的 `sx126x.cmake` 用全局 `zephyr_compile_definitions` 把芯片型号宏传给每一份库，`sx126x_ral_bsp.c` 才能看见 `SX1262`。
 
 ```text
 DTS semtech,sx1262-new
@@ -253,10 +253,9 @@ Ninja 用 SDK 的 `arm-zephyr-eabi-gcc`，目标 Cortex-M4（nRF52840）。
 
 ```text
 rzi/zephyr/patches.yml
-rzi/zephyr/patches/usp_zephyr/0001-...
-                                  0002-...
-                                  0003-...
-                                  0004-sx1262-pa-compile-definitions.patch
+rzi/zephyr/patches/usp/0001-export-secure-element-session-keys.patch
+rzi/zephyr/patches/usp_zephyr/0005-stm32wl-subghz-radio.patch
+rzi/zephyr/patches/usp_zephyr/0006-zephyr-4.5-warning-fixes.patch
 ```
 
 `./scripts/container.sh build` 会先执行 `west patch -sm rzi clean` 和
@@ -271,9 +270,9 @@ rzi/zephyr/patches/usp_zephyr/0001-...
 |----------|------------|--------|
 | 入网、LED、上报周期 | `app/src/main.c` | LBM 源码 |
 | 全擦后 3.3 V | `src/boards/rak4631.c` | 板级 dts 仓 |
-| 密钥、区域、SX1262 属性 | `app/boards/rak4631_nrf52840.overlay` | `usp_zephyr/boards/` |
+| 密钥、区域、SX1262 属性 | `app/boards/rak4631_nrf52840.overlay` | `modules/usp_zephyr/boards/` |
 | 开 USB / USP / 关树上 LoRa | `app/prj.conf` | — |
 | 依赖版本 | `west.yml` | 容器里 `west init` |
-| RZI backend 的上游缺陷 | `rzi/zephyr/patches/` | 直接改 `usp_zephyr/` |
+| RZI backend 的上游缺陷 | `rzi/zephyr/patches/` | 直接改 `modules/usp_zephyr/` |
 
 USP backend 的 Kconfig / overlay 见 `rzi/doc/lorawan-backends.md`。
