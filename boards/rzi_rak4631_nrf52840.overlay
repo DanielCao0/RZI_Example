@@ -7,8 +7,6 @@
 / {
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
-		/* RSUP. Switch to &uart1 for hardware serial. */
-		rzi,rsup-uart = &cdc_acm_uart0;
 	};
 
 	zephyr,user {

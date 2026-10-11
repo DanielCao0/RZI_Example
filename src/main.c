@@ -3,13 +3,17 @@
 #include <errno.h>
 #include <rzi/lorawan/lorawan.h>
 #include <rzi/power/power.h>
-#include <rzi/rsup/rsup.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/atomic.h>
+
+static __maybe_unused void ignore_result(int result)
+{
+	ARG_UNUSED(result);
+}
 
 LOG_MODULE_REGISTER(rzi_app, LOG_LEVEL_INF);
 #define PERIOD_MS         5000
@@ -19,16 +23,6 @@ LOG_MODULE_REGISTER(rzi_app, LOG_LEVEL_INF);
 #define EVENT_JOINED      BIT(1)
 #define EVENT_JOIN_FAILED BIT(2)
 #define EVENT_ERROR       BIT(3)
-static const struct rzi_lorawan_join_config join_config = {
-	.activation = RZI_LORAWAN_ACTIVATION_OTAA,
-	.otaa =
-		{
-			.dev_eui = DT_PROP(USER_NODE, user_lorawan_device_eui),
-			.join_eui = DT_PROP(USER_NODE, user_lorawan_join_eui),
-			.network_key = DT_PROP(USER_NODE, user_lorawan_app_key),
-			.application_key = DT_PROP(USER_NODE, user_lorawan_gen_app_key),
-		},
-};
 static const struct gpio_dt_spec blue = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 static const struct gpio_dt_spec green = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 static uint32_t counter;
@@ -79,6 +73,28 @@ static void wait_usb_console(void)
 		(void)uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr);
 		k_sleep(K_MSEC(100));
 	}
+}
+static int configure_credentials(void)
+{
+	static const uint8_t dev_eui[] = DT_PROP(USER_NODE, user_lorawan_device_eui);
+	static const uint8_t join_eui[] = DT_PROP(USER_NODE, user_lorawan_join_eui);
+	static const uint8_t app_key[] = DT_PROP(USER_NODE, user_lorawan_app_key);
+	static const uint8_t gen_app_key[] = DT_PROP(USER_NODE, user_lorawan_gen_app_key);
+	int rc = rzi_lorawan_set_dev_eui(dev_eui, sizeof(dev_eui));
+
+	if (!rc) {
+		rc = rzi_lorawan_set_app_eui(join_eui, sizeof(join_eui));
+	}
+	if (!rc) {
+		rc = rzi_lorawan_set_app_key(app_key, sizeof(app_key));
+	}
+	if (!rc) {
+		rc = rzi_lorawan_set_gen_app_key(gen_app_key, sizeof(gen_app_key));
+	}
+	if (!rc) {
+		rc = rzi_lorawan_set_activation(RZI_LORAWAN_ACTIVATION_OTAA);
+	}
+	return rc;
 }
 static void send_counter(void)
 {
@@ -137,12 +153,34 @@ static void on_error(int error, void *user_data)
 	(void)k_msgq_put(&lorawan_events, &event, K_NO_WAIT);
 }
 
+static void on_event(const struct rzi_lorawan_event *event, void *user_data)
+{
+	switch (event->type) {
+	case RZI_LORAWAN_EVENT_STATE_CHANGED:
+		on_state_changed(event->state, user_data);
+		break;
+	case RZI_LORAWAN_EVENT_JOINED:
+		on_join_done(0, user_data);
+		break;
+	case RZI_LORAWAN_EVENT_JOIN_FAILED:
+		on_join_done(event->error, user_data);
+		break;
+	case RZI_LORAWAN_EVENT_TX_DONE:
+		on_send_done(&event->tx, user_data);
+		break;
+	case RZI_LORAWAN_EVENT_DOWNLINK:
+		on_downlink(&event->downlink, user_data);
+		break;
+	case RZI_LORAWAN_EVENT_ERROR:
+		on_error(event->error, user_data);
+		break;
+	default:
+		break;
+	}
+}
+
 static const struct rzi_lorawan_callbacks callbacks = {
-	.join_done = on_join_done,
-	.send_done = on_send_done,
-	.downlink = on_downlink,
-	.state_changed = on_state_changed,
-	.error = on_error,
+	.on_event = on_event,
 };
 
 int main(void)
@@ -163,16 +201,14 @@ int main(void)
 	if (rc) {
 		return rc;
 	}
-#if defined(CONFIG_RZI_RSUP)
-	if (rzi_rsup_requested()) {
-		(void)rzi_rsup_run(rzi_rsup_uart());
-	}
-#endif
-	(void)rzi_power_block(RZI_POWER_BLOCK_TRANSPORT);
+	ignore_result(rzi_power_block(RZI_POWER_BLOCK_TRANSPORT));
 	wait_usb_console();
-	(void)rzi_power_unblock(RZI_POWER_BLOCK_TRANSPORT);
+	ignore_result(rzi_power_unblock(RZI_POWER_BLOCK_TRANSPORT));
 	LOG_INF("RZI C API example on %s", CONFIG_BOARD_TARGET);
 	rc = rzi_lorawan_register_callbacks(&callbacks, &callback_handle);
+	if (!rc) {
+		rc = configure_credentials();
+	}
 	if (!rc) {
 		rc = rzi_lorawan_set_region(
 			REGION_NAME(DT_STRING_UNQUOTED(USER_NODE, user_lorawan_region)));
@@ -226,10 +262,10 @@ int main(void)
 				send_counter();
 			} else {
 				atomic_set(&join_in_progress, 1);
-				rc = rzi_lorawan_join(&join_config);
+				rc = rzi_lorawan_join(1, 0, RZI_LORAWAN_JOIN_INTERVAL_DEFAULT, 0);
 				if (rc) {
 					atomic_clear(&join_in_progress);
-					if (rc != -EBUSY) {
+					if (rc != -RZI_ERR_BUSY) {
 						LOG_WRN("join not accepted: %d", rc);
 					}
 				}
