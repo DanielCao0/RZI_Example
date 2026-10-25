@@ -1,12 +1,17 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * Product credentials and USB console. Radio, partitions and USP
- * compatibility are on the rzi_rak4631 board.
+ * Product credentials and UART console. Radio, partitions and USP
+ * compatibility are on the rak3372_f board.
  */
 
 / {
+	aliases {
+		led0 = &led2;
+		led1 = &led1;
+	};
+
 	chosen {
-		zephyr,console = &cdc_acm_uart0;
+		zephyr,console = &lpuart1;
 	};
 
 	zephyr,user {

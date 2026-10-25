@@ -6,7 +6,7 @@
 ./scripts/container.sh build
 ```
 
-内部是：打 `west patch` → 容器里 `west build --sysbuild -b rzi_rak4631/nrf52840` → 产出 `build/app/merged.hex`。
+内部是：打 `west patch` → 容器里 `west build --sysbuild -b rak4631/nrf52840/rzi` → 产出 `build/app/merged.hex`。
 
 运行时分层见 `rzi/doc/architecture-zh.md`，backend 切换见 `rzi/doc/lorawan-backends.md`。本文只讲 **构建**：哪些文件进编译器、用的什么框架。
 
@@ -28,7 +28,7 @@ flowchart TB
   subgraph inputs ["你改的输入"]
     yml["west.yml"]
     prj["app/prj.conf"]
-    overlay["app/boards/rzi_rak4631_nrf52840.overlay"]
+    overlay["app/boards/rak4631_nrf52840_rzi.overlay"]
     cmakeApp["app/CMakeLists.txt"]
     src["app/src/main.c board.c"]
     patches["rzi/zephyr/patches.yml"]
@@ -78,10 +78,10 @@ rzi/                          west 工作区根
 │   ├── CMakeLists.txt        声明源文件、链 lbm_compile_definitions
 │   ├── prj.conf              应用 Kconfig
 │   ├── src/main.c            入网、上报、LED
-│   ├── src/board.c           全擦后 UICR REGOUT0 → 3.3 V
 │   ├── boards/*.overlay      电台 binding、密钥、USB console
 │   └── scripts/container.sh  自动应用 RZI 补丁并构建
-├── rzi/                      RZI 模块及其 west patch 元数据
+├── rzi/                      RZI 模块、板级变体及 west patch 元数据
+│   └── boards/rakwireless/rak4631/regout.c  全擦后 UICR REGOUT0 → 3.3 V
 ├── zephyr/                   RTOS + 构建系统（版本由 rzi/west.yml 决定）
 ├── modules/usp_zephyr/       Semtech 的 Zephyr 胶水模块
 ├── modules/lib/usp/          LBM + RAC + sx126x 驱动源码
@@ -144,7 +144,7 @@ flowchart TB
 
 ## 4. `west build` 实际读哪些文件
 
-板名 `rak4631/nrf52840`，应用源目录 `app/`。
+编译目标 `rak4631/nrf52840/rzi`，应用源目录 `app/`。
 
 ### 4.1 设备树（先合并，再生成头文件）
 
@@ -152,13 +152,14 @@ flowchart TB
 
 ```text
 zephyr/dts/arm/...nrf52840...
-  → zephyr/boards/rakwireless/rak4631/rak4631_nrf52840.dts     板上 SPI、SX1262 脚、led0
-    → app/boards/rzi_rak4631_nrf52840.overlay                     密钥与 USB console；射频在 rzi_rak4631 板上
+  → zephyr/boards/rakwireless/rak4631/rak4631.dts             上游硬件定义
+    → rzi/boards/rakwireless/rak4631/rak4631_nrf52840_rzi.dts  USP 射频适配、LED、RZI 分区
+      → app/boards/rak4631_nrf52840_rzi.overlay               密钥与 USB console
 ```
 
 USP 的 binding 在 `modules/usp_zephyr/dts/bindings/usp/semtech,sx1262-new.yaml`（`usp_zephyr` 的 `module.yml` 声明了 `dts_root`）。
 
-合并结果：`build/app/zephyr/zephyr.dts`。
+sysbuild 中的应用合并结果：`build/app/app/zephyr/zephyr.dts`。
 有这颗节点就会生成：
 
 ```text

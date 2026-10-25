@@ -17,5 +17,5 @@ manifest:
     - name: rzi
       repo-path: RZI
       remote: rzi-origin
-      revision: main
+      revision: develop
       import: true

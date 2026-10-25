@@ -17,7 +17,7 @@ Usage: $0 <command> [args...]
   init          Run west init -l app and west update (skip if initialized)
   shell         Open a shell in the container
   build         Run west build (initialize the workspace if needed)
-                With no arguments, sysbuild the customer app for rzi_rak4631
+                With no arguments, sysbuild the customer app for rak4631/nrf52840/rzi
   sample        Build the upstream usp_zephyr periodical_uplink sample
                 for nRF52840 DK plus an SX126x shield
   run           Run west build -t run
@@ -30,7 +30,7 @@ Examples:
   $0 build-image
   $0 build
   $0 sample
-  $0 build -p always --sysbuild -b rzi_rak4631/nrf52840 /workdir/app
+  $0 build -p always --sysbuild -b rak4631/nrf52840/rzi /workdir/app
   $0 shell
 EOF
 }
@@ -194,7 +194,7 @@ case "${cmd}" in
     if [[ $# -eq 0 ]]; then
       wipe_host_build_dir "${WS}/build/app"
       run_docker bash -lc 'python3 -c "import cryptography" 2>/dev/null || pip install --no-cache-dir cryptography cbor2
-        west build -p always --sysbuild -b rzi_rak4631/nrf52840 -d /workdir/build/app /workdir/app'
+        west build -p always --sysbuild -b rak4631/nrf52840/rzi -d /workdir/build/app /workdir/app'
       publish_merged_hex "${WS}/build/app"
     else
       run_docker west build "$@"

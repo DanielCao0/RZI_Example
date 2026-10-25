@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* RZI C API example: OTAA and a confirmed four-byte counter every 5 s. */
 #include <errno.h>
+#include <rzi/init.h>
 #include <rzi/lorawan/lorawan.h>
 #include <rzi/power/power.h>
 #include <zephyr/devicetree.h>
@@ -28,7 +29,6 @@ static const struct gpio_dt_spec green = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios)
 static uint32_t counter;
 static atomic_t callback_error;
 static atomic_t join_in_progress;
-static rzi_lorawan_callback_handle_t callback_handle;
 K_MSGQ_DEFINE(lorawan_events, sizeof(uint8_t), 8, 1);
 
 static void green_blink(struct k_timer *timer)
@@ -63,6 +63,10 @@ static void joined_leds(void)
 }
 static void wait_usb_console(void)
 {
+	if (!IS_ENABLED(CONFIG_UART_LINE_CTRL)) {
+		return;
+	}
+
 	const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 	uint32_t dtr = 0;
 	int64_t deadline = k_uptime_get() + 10000;
@@ -131,8 +135,8 @@ static void on_join_done(int status, void *user_data)
 static void on_send_done(const struct rzi_lorawan_tx_result *result, void *user_data)
 {
 	ARG_UNUSED(user_data);
-	LOG_INF("TXDONE %s", result->status == RZI_LORAWAN_TX_ACKED  ? "ACK"
-			     : result->status == RZI_LORAWAN_TX_SENT ? "sent, no ACK"
+	LOG_INF("TXDONE %s", result->status == RZI_LORAWAN_EVENT_TXDONE_CONFIRMED ? "ACK"
+			     : result->status == RZI_LORAWAN_EVENT_TXDONE_SENT ? "sent, no ACK"
 								     : "not sent");
 	blue_off();
 }
@@ -156,6 +160,9 @@ static void on_error(int error, void *user_data)
 static void on_event(const struct rzi_lorawan_event *event, void *user_data)
 {
 	switch (event->type) {
+	case RZI_LORAWAN_EVENT_READY:
+		on_state_changed(RZI_LORAWAN_STATE_READY, user_data);
+		break;
 	case RZI_LORAWAN_EVENT_STATE_CHANGED:
 		on_state_changed(event->state, user_data);
 		break;
@@ -165,10 +172,10 @@ static void on_event(const struct rzi_lorawan_event *event, void *user_data)
 	case RZI_LORAWAN_EVENT_JOIN_FAILED:
 		on_join_done(event->error, user_data);
 		break;
-	case RZI_LORAWAN_EVENT_TX_DONE:
+	case RZI_LORAWAN_EVENT_TXDONE:
 		on_send_done(&event->tx, user_data);
 		break;
-	case RZI_LORAWAN_EVENT_DOWNLINK:
+	case RZI_LORAWAN_EVENT_DOWNDATA:
 		on_downlink(&event->downlink, user_data);
 		break;
 	case RZI_LORAWAN_EVENT_ERROR:
@@ -197,7 +204,7 @@ int main(void)
 		return rc;
 	}
 	joining_leds();
-	rc = rzi_power_init();
+	rc = rzi_init();
 	if (rc) {
 		return rc;
 	}
@@ -205,19 +212,16 @@ int main(void)
 	wait_usb_console();
 	ignore_result(rzi_power_unblock(RZI_POWER_BLOCK_TRANSPORT));
 	LOG_INF("RZI C API example on %s", CONFIG_BOARD_TARGET);
-	rc = rzi_lorawan_register_callbacks(&callbacks, &callback_handle);
+	rc = rzi_lorawan_register_callbacks(&callbacks);
 	if (!rc) {
 		rc = configure_credentials();
-	}
-	if (!rc) {
-		rc = rzi_lorawan_set_region(
-			REGION_NAME(DT_STRING_UNQUOTED(USER_NODE, user_lorawan_region)));
 	}
 	if (!rc) {
 		rc = rzi_lorawan_set_join_backoff_bypass(true);
 	}
 	if (!rc) {
-		rc = rzi_lorawan_start();
+		rc = rzi_lorawan_init(
+			REGION_NAME(DT_STRING_UNQUOTED(USER_NODE, user_lorawan_region)));
 	}
 	if (rc) {
 		LOG_ERR("RZI start failed: %d", rc);
