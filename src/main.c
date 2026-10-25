@@ -20,6 +20,9 @@ LOG_MODULE_REGISTER(rzi_app, LOG_LEVEL_INF);
 #define PERIOD_MS         5000
 #define USER_NODE         DT_PATH(zephyr_user)
 #define REGION_NAME(name) DT_CAT(RZI_LORAWAN_REGION_, name)
+#define LORAWAN_REGION REGION_NAME(DT_STRING_UNQUOTED(USER_NODE, user_lorawan_region))
+/* Region identifiers are C enums; evaluate this condition in C, not in #if. */
+#define EU868_DUTY_CYCLE_CHECK (LORAWAN_REGION == RZI_LORAWAN_REGION_EU_868)
 #define EVENT_READY       BIT(0)
 #define EVENT_JOINED      BIT(1)
 #define EVENT_JOIN_FAILED BIT(2)
@@ -100,17 +103,36 @@ static int configure_credentials(void)
 	}
 	return rc;
 }
-static void send_counter(void)
+static int64_t send_counter(void)
 {
 	uint8_t data[4] = {counter >> 24, counter >> 16, counter >> 8, counter};
-	int rc = rzi_lorawan_send(1, data, sizeof(data), RZI_LORAWAN_MSG_CONFIRMED);
+	int rc;
+
+	if (EU868_DUTY_CYCLE_CHECK) {
+		int32_t time_ms;
+
+		rc = rzi_lorawan_get_duty_cycle_status(&time_ms);
+		if (rc != 0) {
+			LOG_WRN("Duty-cycle query failed: %d; retry in %d ms", rc, PERIOD_MS);
+			return PERIOD_MS;
+		}
+		if (time_ms < 0) {
+			int64_t wait_ms = -(int64_t)time_ms;
+
+			LOG_INF("Duty cycle limited; retry in %lld ms", (long long)wait_ms);
+			return wait_ms;
+		}
+	}
+
+	rc = rzi_lorawan_send(1, data, sizeof(data), RZI_LORAWAN_MSG_CONFIRMED);
 	if (rc) {
 		LOG_WRN("uplink not accepted: %d", rc);
-		return;
+		return PERIOD_MS;
 	}
 	gpio_pin_set_dt(&blue, 1);
 	(void)k_work_reschedule(&blue_off_work, K_MSEC(80));
 	LOG_INF("confirmed uplink #%u on port 1", counter++);
+	return PERIOD_MS;
 }
 
 static void on_state_changed(enum rzi_lorawan_state state, void *user_data)
@@ -178,6 +200,19 @@ static void on_event(const struct rzi_lorawan_event *event, void *user_data)
 	case RZI_LORAWAN_EVENT_DOWNDATA:
 		on_downlink(&event->downlink, user_data);
 		break;
+	case RZI_LORAWAN_EVENT_REGIONAL_DUTY_CYCLE:
+		LOG_INF("REGIONAL_DUTY_CYCLE: %s", event->duty_cycle_limited ? "limited" : "clear");
+		if (EU868_DUTY_CYCLE_CHECK && event->duty_cycle_limited) {
+			int32_t time_ms;
+			int rc = rzi_lorawan_get_duty_cycle_status(&time_ms);
+
+			if (rc == 0 && time_ms < 0) {
+				LOG_INF("Duty-cycle wait remaining: %lld ms", -(long long)time_ms);
+			} else if (rc != 0) {
+				LOG_WRN("Duty-cycle query failed: %d", rc);
+			}
+		}
+		break;
 	case RZI_LORAWAN_EVENT_ERROR:
 		on_error(event->error, user_data);
 		break;
@@ -220,8 +255,7 @@ int main(void)
 		rc = rzi_lorawan_set_join_backoff_bypass(true);
 	}
 	if (!rc) {
-		rc = rzi_lorawan_init(
-			REGION_NAME(DT_STRING_UNQUOTED(USER_NODE, user_lorawan_region)));
+		rc = rzi_lorawan_init(LORAWAN_REGION);
 	}
 	if (rc) {
 		LOG_ERR("RZI start failed: %d", rc);
@@ -263,7 +297,9 @@ int main(void)
 		}
 		if (ready && k_uptime_get() >= next_action) {
 			if (joined) {
-				send_counter();
+				int64_t delay_ms = send_counter();
+
+				next_action = k_uptime_get() + delay_ms;
 			} else {
 				atomic_set(&join_in_progress, 1);
 				rc = rzi_lorawan_join(1, 0, RZI_LORAWAN_JOIN_INTERVAL_DEFAULT, 0);
@@ -273,8 +309,8 @@ int main(void)
 						LOG_WRN("join not accepted: %d", rc);
 					}
 				}
+				next_action = k_uptime_get() + PERIOD_MS;
 			}
-			next_action = k_uptime_get() + PERIOD_MS;
 		}
 	}
 }

@@ -96,6 +96,23 @@ west build --sysbuild -b rak3372_f/stm32wle5xx -d build/app-rak3372-f app
 This uses the F-specific clock, pinmux, RF switch and dual-slot layout. Its
 merged image is `build/app-rak3372-f/merged_rak3372_f_stm32wle5xx.hex`.
 
+## EU868 duty-cycle checks
+
+`LORAWAN_REGION` in `src/main.c` reads `user-lorawan-region` from the selected
+board overlay. `EU868_DUTY_CYCLE_CHECK` follows that region automatically:
+EU868 enables application-side duty-cycle checks, while other regions skip
+them. The comparison uses C enum values and is evaluated in a C `if`.
+
+Before sending in EU868, the app queries the remaining duty-cycle wait.
+While limited, it postpones the next send attempt for the reported wait
+without submitting an uplink or incrementing the counter. A failed query
+is retried after five seconds. Regional duty-cycle events also log whether
+the restriction is active, with remaining wait diagnostics for EU868.
+
+The reported wait is a snapshot rather than a guaranteed transmission time.
+LBM still schedules accepted uplinks; the default five-second application
+interval does not override regional restrictions.
+
 ## Ownership boundary
 
 The application owns product behavior, credentials, region selection, LEDs, and
